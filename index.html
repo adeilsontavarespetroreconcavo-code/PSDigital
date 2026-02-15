@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS Digital</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root { --primary: #004d26; --bg: #f0f2f5; --text: #333; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: var(--text); }
+        header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2em; position: sticky; top: 0; z-index: 100; }
+        .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+        .screen { display: none; }
+        .active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; position: relative; }
+        .logo-box { text-align: center; margin-bottom: 20px; }
+        .logo-box img { max-width: 150px; height: auto; border-radius: 8px; }
+        label { display: block; font-weight: bold; font-size: 0.85em; color: var(--primary); margin: 10px 0 5px 0; text-transform: uppercase; }
+        .section-title { background: #e8f5e9; color: var(--primary); padding: 8px 12px; border-radius: 6px; font-weight: bold; margin: 20px 0 10px 0; border-left: 4px solid var(--primary); }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: #fafafa; outline: none; }
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; }
+        button { width: 100%; padding: 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1em; transition: 0.2s; margin-top: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-whatsapp { background: #25d366; color: white; border: none; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-pdf { background: #d32f2f; color: white; border: none; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        /* Botão excluir na lista */
+        .btn-delete-small { 
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            background: #ff4d4d; color: white; border: none; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .view-content { background: #fff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); line-height: 1.6; font-size: 0.9em; margin-bottom: 15px; }
+        .view-item { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .view-item b { color: var(--primary); display: block; font-size: 0.8em; text-transform: uppercase; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+
+        /* Estilo para gerar PDF/Impressão */
+        @media print {
+            header, button, .btn-delete-small, #areaBotoesLeitura, hr { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .card { box-shadow: none; border: none; }
+            .view-content { border-left: 2px solid #000; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<header id="mainHeader">PS DIGITAL</header>
+
+<div class="container">
+    <div id="screenLogin" class="screen active">
+        <div class="logo-box">
+            <img src="PSdigital.png" alt="Logo" onerror="this.src='https://via.placeholder.com/150?text=PS+Digital'">
+            <h2 style="color: var(--primary);">Login</h2>
+        </div>
+        <div class="card">
+            <input type="text" id="loginUser" placeholder="Usuário">
+            <input type="password" id="loginPass" placeholder="Senha" style="margin-top:10px">
+            <button class="btn-primary" onclick="realizarLogin()">ENTRAR</button>
+            <p onclick="resetAcesso()" style="text-align:center; font-size:0.7em; color:#999; cursor:pointer; margin-top:15px;">Resetar para Padrão</p>
+        </div>
+    </div>
+
+    <div id="screenMenu" class="screen">
+        <button class="btn-primary" onclick="changeScreen('screenNovaPS', 'NOVA PS')">NOVA PASSAGEM (PS)</button>
+        <button class="btn-outline" onclick="abrirLeituraRascunho()">VER RASCUNHO SALVO</button>
+        <button class="btn-outline" onclick="loadEnviadas()">HISTÓRICO (ENVIADAS)</button>
+        <button class="btn-outline" onclick="changeScreen('screenConfig', 'AJUSTES DE ACESSO')" style="margin-top:20px; color:#666; font-size:0.8em;">⚙️ ALTERAR LOGIN/SENHA</button>
+        <hr>
+        <button class="btn-outline" onclick="logout()" style="border-color:#d32f2f; color:#d32f2f;">SAIR</button>
+    </div>
+
+    <div id="screenConfig" class="screen">
+        <div class="card">
+            <h3>Alterar Dados de Acesso</h3>
+            <label>Novo Usuário</label>
+            <input type="text" id="newUsername" placeholder="Ex: Petro">
+            <label>Nova Senha</label>
+            <input type="password" id="newPassword" placeholder="Digite a nova senha">
+            <button class="btn-primary" onclick="salvarNovoAcesso()">SALVAR ALTERAÇÕES</button>
+            <button class="btn-outline" onclick="changeScreen('screenMenu', 'PS DIGITAL')">VOLTAR</button>
+        </div>
+    </div>
+
+    <div id="screenNovaPS" class="screen">
+        <div class="card">
+            <div class="section-title">01 - Identificação</div>
+            <label>Seu Nome</label><input type="text" id="psNome" placeholder="Digite seu nome">
+            <label>Localidade</label>
+            <select id="psLocal"><option value="Bahia">Bahia</option><option value="Potiguar">Potiguar</option></select>
+            <label>Data do Relatório</label><input type="date" id="psDataRel">
+            <div class="row">
+                <div class="col"><label>Início Período</label><input type="date" id="dataInicio"></div>
+                <div class="col"><label>Fim Período</label><input type="date" id="dataFim"></div>
+            </div>
+
+            <div class="section-title">02 - Checklists</div>
+            <div class="row">
+                <div class="col"><label>Realizados</label><input type="number" id="checkReal" value="0"></div>
+                <div class="col"><label>Pendentes</label><input type="number" id="checkPend" value="0"></div>
+            </div>
+            <label>Descrição das Pendências</label><textarea id="checkNomesPend" rows="2" placeholder="Ex: ASB-0001"></textarea>
+
+            <div class="section-title">03 - Falhas e Ocorrências</div>
+            <div class="row">
+                <div class="col"><label>Acomp.</label><input type="number" id="totalAcomp" value="0"></div>
+                <div class="col"><label>Novas</label><input type="number" id="totalNovas" value="0"></div>
+            </div>
+            <label>Relato de Falhas</label><textarea id="falhasDesc" rows="3"></textarea>
+            
+            <div class="section-title">04 - Outros Recursos</div>
+            <label>Total Nomenclaturas</label><input type="number" id="nomTotal" value="0">
+            <label>Descrição Nomenclaturas</label><textarea id="nomDesc" rows="2"></textarea>
+            
+            <label>Total PT's Liberadas</label><input type="number" id="ptTotal" value="0">
+            <label>Informações das PT's</label><textarea id="ptDesc" rows="2"></textarea>
+
+            <div class="section-title">05 - Observações</div>
+            <label>Outras Informações</label><textarea id="infoOutros" rows="2" placeholder="Observações adicionais..."></textarea>
+
+            <button class="btn-primary" onclick="salvarRascunho()">SALVAR E REVISAR</button>
+            <button class="btn-outline" onclick="changeScreen('screenMenu', 'PS DIGITAL')">CANCELAR</button>
+        </div>
+    </div>
+
+    <div id="screenLeitura" class="screen">
+        <div class="card">
+            <h3 id="tituloLeitura" class="no-print">Detalhes da Passagem</h3>
+            <button class="btn-whatsapp no-print" onclick="copiarParaWhatsapp()">📋 COPIAR PARA WHATSAPP</button>
+            <button class="btn-pdf no-print" onclick="window.print()">📄 SALVAR EM PDF</button>
+            
+            <div id="conteudoLeitura" class="view-content"></div>
+            
+            <div id="areaBotoesLeitura" class="no-print">
+                <button class="btn-primary" onclick="confirmarEnvio()">CONFIRMAR E FINALIZAR</button>
+                <button class="btn-outline" onclick="changeScreen('screenNovaPS', 'EDITAR PS')">VOLTAR E EDITAR</button>
+            </div>
+            <button class="btn-outline no-print" onclick="changeScreen('screenMenu', 'PS DIGITAL')" id="btnVoltarMenu" style="display:none">VOLTAR AO MENU</button>
+        </div>
+    </div>
+
+    <div id="screenHistorico" class="screen">
+        <h3>Histórico de Enviadas</h3>
+        <div id="listaHistorico"></div>
+        <button class="btn-outline" onclick="changeScreen('screenMenu', 'PS DIGITAL')">VOLTAR</button>
+    </div>
+</div>
+
+<script>
+    let rascunhoAtivo = null;
+
+    function formatarDataBR(dataStr) {
+        if (!dataStr) return "---";
+        const [ano, mes, dia] = dataStr.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    function changeScreen(id, title) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(title) document.getElementById('mainHeader').innerText = title;
+        window.scrollTo(0,0);
+    }
+
+    function realizarLogin() {
+        const u = document.getElementById('loginUser').value;
+        const p = document.getElementById('loginPass').value;
+        const su = localStorage.getItem('userLogin') || 'Petro';
+        const sp = localStorage.getItem('userPass') || '@1234';
+        if (u === su && p === sp) { changeScreen('screenMenu', 'PS DIGITAL'); } 
+        else { alert("Acesso incorreto!"); }
+    }
+
+    function salvarNovoAcesso() {
+        const u = document.getElementById('newUsername').value;
+        const p = document.getElementById('newPassword').value;
+        if(u && p) {
+            localStorage.setItem('userLogin', u);
+            localStorage.setItem('userPass', p);
+            alert("Acesso atualizado!");
+            changeScreen('screenMenu', 'PS DIGITAL');
+        } else { alert("Preencha tudo!"); }
+    }
+
+    function salvarRascunho() {
+        rascunhoAtivo = {
+            id: Date.now(), // ID único para exclusão
+            nome: document.getElementById('psNome').value,
+            local: document.getElementById('psLocal').value,
+            dataRel: document.getElementById('psDataRel').value,
+            inicio: document.getElementById('dataInicio').value,
+            fim: document.getElementById('dataFim').value,
+            checkR: document.getElementById('checkReal').value,
+            checkP: document.getElementById('checkPend').value,
+            checkD: document.getElementById('checkNomesPend').value,
+            acompT: document.getElementById('totalAcomp').value,
+            novasT: document.getElementById('totalNovas').value,
+            falhasD: document.getElementById('falhasDesc').value,
+            nomT: document.getElementById('nomTotal').value,
+            nomD: document.getElementById('nomDesc').value,
+            ptT: document.getElementById('ptTotal').value,
+            ptD: document.getElementById('ptDesc').value,
+            outros: document.getElementById('infoOutros').value
+        };
+        abrirLeitura(rascunhoAtivo, true);
+    }
+
+    function abrirLeitura(dados, modoEnvio) {
+        rascunhoAtivo = dados;
+        const cont = document.getElementById('conteudoLeitura');
+        cont.innerHTML = `
+            <div class="view-item"><b>Colaborador</b>${dados.nome}</div>
+            <div class="view-item"><b>Local</b>${dados.local}</div>
+            <div class="view-item"><b>Data Relatório</b>${formatarDataBR(dados.dataRel)}</div>
+            <div class="view-item"><b>Período</b>${formatarDataBR(dados.inicio)} a ${formatarDataBR(dados.fim)}</div>
+            <div class="section-title">Checklists</div>
+            <div class="view-item"><b>OK / Pendentes</b>${dados.checkR} / ${dados.checkP}</div>
+            <div class="view-item"><b>Pendências</b>${dados.checkD || 'Nenhuma'}</div>
+            <div class="section-title">Falhas</div>
+            <div class="view-item"><b>Acomp. / Novas</b>${dados.acompT} / ${dados.novasT}</div>
+            <div class="view-item"><b>Relato</b>${dados.falhasD || '-'}</div>
+            <div class="section-title">Recursos</div>
+            <div class="view-item"><b>Nomenclaturas (${dados.nomT})</b>${dados.nomD || '-'}</div>
+            <div class="view-item"><b>PT's (${dados.ptT})</b>${dados.ptD || '-'}</div>
+            <div class="section-title">Observações</div>
+            <div class="view-item"><b>Outros</b>${dados.outros || '-'}</div>
+        `;
+        document.getElementById('areaBotoesLeitura').style.display = modoEnvio ? 'block' : 'none';
+        document.getElementById('btnVoltarMenu').style.display = modoEnvio ? 'none' : 'block';
+        changeScreen('screenLeitura', modoEnvio ? 'REVISAR' : 'DETALHES');
+    }
+
+    function copiarParaWhatsapp() {
+        const d = rascunhoAtivo;
+        const texto = `*PASSAGEM DE SERVIÇO - PS DIGITAL*\n\n` +
+            `👤 *Colaborador:* ${d.nome}\n` +
+            `📍 *Local:* ${d.local}\n` +
+            `📅 *Data:* ${formatarDataBR(d.dataRel)}\n` +
+            `🗓️ *Período:* ${formatarDataBR(d.inicio)} a ${formatarDataBR(d.fim)}\n\n` +
+            `*CHECKLISTS*\n✅ Realizados: ${d.checkR}\n⚠️ Pendentes: ${d.checkP}\n📝 Obs: ${d.checkD || 'Nenhum'}\n\n` +
+            `*FALHAS*\n🔧 Acomp: ${d.acompT} | 🚨 Novas: ${d.novasT}\n💬 Relato: ${d.falhasD || '-'}\n\n` +
+            `*RECURSOS*\n📐 Nomenclaturas (${d.nomT}): ${d.nomD || '-'}\n📄 PTs (${d.ptT}): ${d.ptD || '-'}\n\n` +
+            `*OBSERVAÇÕES*\nℹ️ ${d.outros || '-'}`;
+        navigator.clipboard.writeText(texto).then(() => alert("Copiado!"));
+    }
+
+    function confirmarEnvio() {
+        let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+        db.unshift(rascunhoAtivo);
+        localStorage.setItem('psEnviadas', JSON.stringify(db));
+        alert("Finalizado com sucesso!");
+        changeScreen('screenMenu', 'PS DIGITAL');
+    }
+
+    function loadEnviadas() {
+        const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+        const lista = document.getElementById('listaHistorico');
+        lista.innerHTML = db.length ? "" : "<p>Sem histórico.</p>";
+        db.forEach((item, index) => {
+            let div = document.createElement('div');
+            div.className = "card";
+            div.style.paddingRight = "60px"; // Espaço para a lixeira
+            div.innerHTML = `
+                <div onclick="abrirLeituraPorId('${item.id || index}')" style="cursor:pointer">
+                    <b>${item.nome}</b><br>
+                    <small>${item.local} | ${formatarDataBR(item.dataRel)}</small>
+                </div>
+                <button class="btn-delete-small" onclick="excluirPS('${item.id || index}')">🗑️</button>
+            `;
+            lista.appendChild(div);
+        });
+        changeScreen('screenHistorico', 'HISTÓRICO');
+    }
+
+    function abrirLeituraPorId(id) {
+        const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+        const item = db.find(i => i.id == id) || db[id];
+        if(item) abrirLeitura(item, false);
+    }
+
+    function excluirPS(id) {
+        if(confirm("Deseja realmente excluir esta passagem?")) {
+            let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+            // Filtra removendo o item pelo ID ou pelo index (fallback)
+            db = db.filter(i => (i.id != id && db.indexOf(i) != id));
+            localStorage.setItem('psEnviadas', JSON.stringify(db));
+            loadEnviadas(); // Recarrega a lista
+        }
+    }
+
+    function resetAcesso() { localStorage.clear(); location.reload(); }
+    function logout() { location.reload(); }
+    function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }
+</script>
+<script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Offline pronto:', reg.scope))
+            .catch(err => console.log('Erro no Service Worker:', err));
+        });
+      }
+    </script>
+</body>
+</html>
