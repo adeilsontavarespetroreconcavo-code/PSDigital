@@ -275,111 +275,15 @@ function confirmarEnvio() {
         changeScreen('screenMenu', 'PS DIGITAL');
     });
 }
-function carregarHistoricoGlobal() {
-    const lista = document.getElementById('listaHistorico');
-    lista.innerHTML = "<p style='text-align:center'>Buscando dados na nuvem...</p>";
-    
-    fetch(URL_API)
-        .then(res => res.json())
-        .then(dados => {
-            lista.innerHTML = "";
-            if (!dados || dados.length === 0) {
-                lista.innerHTML = "<p style='text-align:center'>Nenhum registro encontrado.</p>";
-                return;
-            }
-
-            dados.reverse().forEach((ps, index) => {
-                const item = document.createElement('div');
-                item.className = 'card';
-                
-                // Limpa a data caso venha no formato 2026-02-16T03:00:00...
-                let dataExibicao = ps.dataRel;
-                if(dataExibicao && dataExibicao.includes('T')) {
-                    dataExibicao = dataExibicao.split('T')[0];
-                }
-
-                const dadosString = JSON.stringify(ps).replace(/'/g, "&apos;");
-                
-                item.innerHTML = `
-                    <div onclick='abrirLeitura(${dadosString}, false)' style="cursor:pointer">
-                        <small>${formatarDataBR(dataExibicao)}</small>
-                        <div style="font-weight:bold; color:var(--primary)">${ps.nome || 'Sem Nome'}</div>
-                        <div style="font-size:0.8em; color:#666">${ps.local || ''}</div>
-                    </div>
-                    <button class="btn-delete-small" onclick="excluirPS(${ps.id || index})">🗑️</button>
-                `;
-                lista.appendChild(item);
-            });
-        .catch(err => {
-            console.error(err);
-            lista.innerHTML = "<p style='text-align:center; color:orange'>Modo Offline (Dados Locais)</p>";
-            const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            renderizarListaLocal(db);
-        });
-}
-        .catch(err => {
-            console.error(err);
-            lista.innerHTML = "<p style='text-align:center; color:orange'>Modo Offline (Dados Locais)</p>";
-            const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            renderizarListaLocal(db);
-        });
-}
-    function loadEnviadas() {
-    // Primeiro, mudamos para a tela de histórico
-    changeScreen('screenHistorico', 'HISTÓRICO');
-    
-    // Chamamos a função que busca na planilha (Nuvem)
-    carregarHistoricoGlobal();
-}
-    
-    function abrirLeituraPorId(id) {
-        const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-        const item = db.find(i => i.id == id) || db[id];
-        if(item) abrirLeitura(item, false);
-    }
-
-    function excluirPS(id) {
-        if(confirm("Deseja realmente excluir esta passagem?")) {
-            let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            // Filtra removendo o item pelo ID ou pelo index (fallback)
-            db = db.filter(i => (i.id != id && db.indexOf(i) != id));
-            localStorage.setItem('psEnviadas', JSON.stringify(db));
-            loadEnviadas(); // Recarrega a lista
-        }
-    }
-
-    function resetAcesso() { localStorage.clear(); location.reload(); }
-    function logout() { location.reload(); }
-    function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }
-</script>
-<script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Offline pronto:', reg.scope))
-            .catch(err => console.log('Erro no Service Worker:', err));
-        });
-      }
-      function renderizarListaLocal(dados) {
-    const lista = document.getElementById('listaHistorico');
-    lista.innerHTML = "";
-    dados.forEach((ps, index) => {
-        const item = document.createElement('div');
-        item.className = 'card';
-        item.innerHTML = `
-            <div onclick="abrirLeituraPorId(${ps.id || index})">
-                <small>${formatarDataBR(ps.dataRel)}</small>
-                <div style="font-weight:bold; color:var(--primary)">${ps.nome}</div>
-                <div style="font-size:0.8em; color:#666">${ps.local}</div>
-            </div>
-            <button class="btn-delete-small" onclick="excluirPS(${ps.id || index})">🗑️</button>
-        `;
-        lista.appendChild(item);
-    });
-}
+function carregarHistoricoGlobal() {const lista = document.getElementById('listaHistorico');lista.innerHTML = "Buscando dados na nuvem...";fetch(URL_API).then(res => res.json()).then(dados => {lista.innerHTML = "";if (!dados || dados.length === 0) {lista.innerHTML = "Nenhum registro encontrado.";return;}dados.reverse().forEach((ps, index) => {const item = document.createElement('div');item.className = 'card';let dLimpa = ps.dataRel || "";if(dLimpa.includes('T')) dLimpa = dLimpa.split('T')[0];const dStr = JSON.stringify(ps).replace(/'/g, "'");item.innerHTML = `<div onclick='abrirLeitura(${dStr}, false)&#39; style=&#39;cursor:pointer&#39;&gt;
+&lt;small&gt;${formatarDataBR(dLimpa)}</small><div style='font-weight:bold;color:var(--primary)'>${ps.nome || &#39;Sem Nome&#39;}&lt;/div&gt;
+&lt;div style=&#39;font-size:0.8em;color:#666&#39;&gt;${ps.local || ''}</div></div><button class='btn-delete-small' onclick='excluirPS(${ps.id || index})'>🗑️</button>`;lista.appendChild(item);});}).catch(err => {console.error(err);lista.innerHTML = "Modo Offline";renderizarListaLocal(JSON.parse(localStorage.getItem('psEnviadas') || "[]"));});}function loadEnviadas() {changeScreen('screenHistorico', 'HISTÓRICO');carregarHistoricoGlobal();}function abrirLeituraPorId(id) {const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");const item = db.find(i => i.id == id) || db[id];if(item) abrirLeitura(item, false);}function excluirPS(id) {if(confirm("Deseja excluir?")) {let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");db = db.filter((i, index) => (i.id != id && index != id));localStorage.setItem('psEnviadas', JSON.stringify(db));loadEnviadas();}}function resetAcesso() { localStorage.clear(); location.reload(); }function logout() { location.reload(); }function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }function renderizarListaLocal(dados) {const lista = document.getElementById('listaHistorico');lista.innerHTML = "";dados.forEach((ps, index) => {const item = document.createElement('div');item.className = 'card';item.innerHTML = `<div onclick='abrirLeituraPorId(${ps.id || index})&#39;&gt;
+&lt;small&gt;${formatarDataBR(ps.dataRel)}</small><div style='font-weight:bold'>${ps.nome}&lt;/div&gt;
+&lt;div&gt;${ps.local}</div></div><button class='btn-delete-small' onclick='excluirPS(${ps.id || index})'>🗑️</button>`;lista.appendChild(item);});}
     </script>
 </body>
 </html>
+
 
 
 
