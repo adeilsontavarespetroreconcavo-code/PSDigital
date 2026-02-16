@@ -250,34 +250,70 @@
         navigator.clipboard.writeText(texto).then(() => alert("Copiado!"));
     }
 
-    function confirmarEnvio() {
-        let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-        db.unshift(rascunhoAtivo);
-        localStorage.setItem('psEnviadas', JSON.stringify(db));
-        alert("Finalizado com sucesso!");
+   // Adicione esta constante no topo do seu <script> ou logo acima da função
+const URL_API = "https://script.google.com/macros/s/AKfycbxNEP7Y6j04t6J2ny9gbhuV8ni1QmzmlMA56ORz_-h1iDPeOAaGdY3sBiwVINhUFdYy-A/exec"; 
+
+function confirmarEnvio() {
+    // Mantém a cópia no celular (Offline)
+    let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+    db.unshift(rascunhoAtivo);
+    localStorage.setItem('psEnviadas', JSON.stringify(db));
+
+    // Envia os dados para a Planilha Google (Online)
+    fetch(URL_API, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(rascunhoAtivo)
+    })
+    .then(() => {
+        alert("Enviado com sucesso para a planilha!");
         changeScreen('screenMenu', 'PS DIGITAL');
-    }
+    })
+    .catch(err => {
+        console.error("Erro ao enviar:", err);
+        alert("Salvo apenas no celular. Sem conexão com a nuvem.");
+        changeScreen('screenMenu', 'PS DIGITAL');
+    });
+}
+function carregarHistoricoGlobal() {
+    const lista = document.getElementById('listaHistorico');
+    lista.innerHTML = "<p>Carregando dados da nuvem...</p>";
+    
+    // Define um tempo limite de 5 segundos para não travar
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    fetch(URL_API, { signal: controller.signal })
+        .then(res => res.json())
+        .then(dados => {
+            clearTimeout(timeoutId);
+            lista.innerHTML = "";
+            if (!dados || dados.length === 0) {
+                lista.innerHTML = "<p>Nenhuma PS encontrada na nuvem.</p>";
+                return;
+            }
+            // ... resto do seu código de renderizar as linhas ...
+        })
+        .catch(err => {
+            console.warn("Falha na nuvem, carregando offline:", err);
+            lista.innerHTML = "<p>Mostrando Histórico Local (Offline)</p>";
+            // Se a nuvem falhar, ele carrega o que está no celular
+            const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+            if(db.length > 0) {
+                // Chama sua função antiga de listar localmente
+                renderizarListaLocal(db); 
+            }
+        });
+}
 
     function loadEnviadas() {
-        const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-        const lista = document.getElementById('listaHistorico');
-        lista.innerHTML = db.length ? "" : "<p>Sem histórico.</p>";
-        db.forEach((item, index) => {
-            let div = document.createElement('div');
-            div.className = "card";
-            div.style.paddingRight = "60px"; // Espaço para a lixeira
-            div.innerHTML = `
-                <div onclick="abrirLeituraPorId('${item.id || index}')" style="cursor:pointer">
-                    <b>${item.nome}</b><br>
-                    <small>${item.local} | ${formatarDataBR(item.dataRel)}</small>
-                </div>
-                <button class="btn-delete-small" onclick="excluirPS('${item.id || index}')">🗑️</button>
-            `;
-            lista.appendChild(div);
-        });
-        changeScreen('screenHistorico', 'HISTÓRICO');
-    }
-
+    // Primeiro, mudamos para a tela de histórico
+    changeScreen('screenHistorico', 'HISTÓRICO');
+    
+    // Chamamos a função que busca na planilha (Nuvem)
+    carregarHistoricoGlobal();
+}
+    
     function abrirLeituraPorId(id) {
         const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
         const item = db.find(i => i.id == id) || db[id];
@@ -306,6 +342,23 @@
             .catch(err => console.log('Erro no Service Worker:', err));
         });
       }
+      function renderizarListaLocal(dados) {
+    const lista = document.getElementById('listaHistorico');
+    lista.innerHTML = "";
+    dados.forEach((ps, index) => {
+        const item = document.createElement('div');
+        item.className = 'card';
+        item.innerHTML = `
+            <div onclick="abrirLeituraPorId(${ps.id || index})">
+                <small>${formatarDataBR(ps.dataRel)}</small>
+                <div style="font-weight:bold; color:var(--primary)">${ps.nome}</div>
+                <div style="font-size:0.8em; color:#666">${ps.local}</div>
+            </div>
+            <button class="btn-delete-small" onclick="excluirPS(${ps.id || index})">🗑️</button>
+        `;
+        lista.appendChild(item);
+    });
+}
     </script>
 </body>
 </html>
