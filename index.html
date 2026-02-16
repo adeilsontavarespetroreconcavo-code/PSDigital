@@ -251,7 +251,7 @@
     }
 
    // Adicione esta constante no topo do seu <script> ou logo acima da função
-const URL_API = "https://script.google.com/macros/s/AKfycbxNEP7Y6j04t6J2ny9gbhuV8ni1QmzmlMA56ORz_-h1iDPeOAaGdY3sBiwVINhUFdYy-A/exec"; 
+const URL_API = "https://script.google.com/macros/s/AKfycbwSw23NcOIkEbvPWEywe0KYVH3XB8EKg_B4PPz2M87Y-ibtRyH4MRaQfzqXnBn6VeTgWw/exec"; 
 
 function confirmarEnvio() {
     // Mantém a cópia no celular (Offline)
@@ -277,35 +277,39 @@ function confirmarEnvio() {
 }
 function carregarHistoricoGlobal() {
     const lista = document.getElementById('listaHistorico');
-    lista.innerHTML = "<p>Carregando dados da nuvem...</p>";
+    lista.innerHTML = "<p style='text-align:center'>Buscando dados na nuvem...</p>";
     
-    // Define um tempo limite de 5 segundos para não travar
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    fetch(URL_API, { signal: controller.signal })
+    fetch(URL_API)
         .then(res => res.json())
         .then(dados => {
-            clearTimeout(timeoutId);
             lista.innerHTML = "";
             if (!dados || dados.length === 0) {
-                lista.innerHTML = "<p>Nenhuma PS encontrada na nuvem.</p>";
+                lista.innerHTML = "<p style='text-align:center'>Nenhum registro encontrado.</p>";
                 return;
             }
-            // ... resto do seu código de renderizar as linhas ...
+
+            // Inverte para mostrar o mais recente primeiro
+            dados.reverse().forEach((ps) => {
+                const item = document.createElement('div');
+                item.className = 'card';
+                // Criamos o HTML do card
+                item.innerHTML = `
+                    <div onclick='abrirLeitura(${JSON.stringify(ps)}, false)'>
+                        <small>${ps.dataRel ? formatarDataBR(ps.dataRel) : '---'}</small>
+                        <div style="font-weight:bold; color:var(--primary)">${ps.nome || 'Sem Nome'}</div>
+                        <div style="font-size:0.8em; color:#666">${ps.local || ''}</div>
+                    </div>
+                `;
+                lista.appendChild(item);
+            });
         })
         .catch(err => {
-            console.warn("Falha na nuvem, carregando offline:", err);
-            lista.innerHTML = "<p>Mostrando Histórico Local (Offline)</p>";
-            // Se a nuvem falhar, ele carrega o que está no celular
+            console.error(err);
+            lista.innerHTML = "<p style='text-align:center; color:orange'>Modo Offline (Dados Locais)</p>";
             const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            if(db.length > 0) {
-                // Chama sua função antiga de listar localmente
-                renderizarListaLocal(db); 
-            }
+            renderizarListaLocal(db);
         });
 }
-
     function loadEnviadas() {
     // Primeiro, mudamos para a tela de histórico
     changeScreen('screenHistorico', 'HISTÓRICO');
@@ -362,3 +366,4 @@ function carregarHistoricoGlobal() {
     </script>
 </body>
 </html>
+
