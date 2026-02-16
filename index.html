@@ -155,158 +155,176 @@
 
 <script>
  let rascunhoAtivo = null;
-    const URL_API = "https://script.google.com/macros/s/AKfycbwSw23NcOIkEbvPWEywe0KYVH3XB8EKg_B4PPz2M87Y-ibtRyH4MRaQfzqXnBn6VeTgWw/exec"; 
+window.dbNuvem = []; // Banco de dados temporário para evitar erros de abertura
+const URL_API = "https://script.google.com/macros/s/AKfycbzF5dhJDGFQPbjYryLrowQorcGjZHdhBThdNJK3zb51nrir5vwnwL_NNRNPfghnUi9Ewg/exec"; 
 
-    function formatarDataBR(dataStr) {
-        if (!dataStr) return "---";
-        const [ano, mes, dia] = dataStr.split('-');
-        return `${dia}/${mes}/${ano}`;
-    }
+function formatarDataBR(dataStr) {
+    if (!dataStr) return "---";
+    const partes = dataStr.split('T')[0].split('-');
+    if(partes.length < 3) return dataStr;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
 
-    function changeScreen(id, title) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(title) document.getElementById('mainHeader').innerText = title;
-        window.scrollTo(0,0);
-    }
+function changeScreen(id, title) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(title) document.getElementById('mainHeader').innerText = title;
+    window.scrollTo(0,0);
+}
 
-    function realizarLogin() {
-        const u = document.getElementById('loginUser').value;
-        const p = document.getElementById('loginPass').value;
-        const su = localStorage.getItem('userLogin') || 'Petro';
-        const sp = localStorage.getItem('userPass') || '@1234';
-        if (u === su && p === sp) { changeScreen('screenMenu', 'PS DIGITAL'); } 
-        else { alert("Acesso incorreto!"); }
-    }
+function realizarLogin() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    const su = localStorage.getItem('userLogin') || 'Petro';
+    const sp = localStorage.getItem('userPass') || '@1234';
+    if (u === su && p === sp) { changeScreen('screenMenu', 'PS DIGITAL'); } 
+    else { alert("Acesso incorreto!"); }
+}
 
-    function salvarNovoAcesso() {
-        const u = document.getElementById('newUsername').value;
-        const p = document.getElementById('newPassword').value;
-        if(u && p) {
-            localStorage.setItem('userLogin', u);
-            localStorage.setItem('userPass', p);
-            alert("Acesso atualizado!");
-            changeScreen('screenMenu', 'PS DIGITAL');
-        } else { alert("Preencha tudo!"); }
-    }
+function salvarNovoAcesso() {
+    const u = document.getElementById('newUsername').value;
+    const p = document.getElementById('newPassword').value;
+    if(u && p) {
+        localStorage.setItem('userLogin', u);
+        localStorage.setItem('userPass', p);
+        alert("Acesso atualizado!");
+        changeScreen('screenMenu', 'PS DIGITAL');
+    } else { alert("Preencha tudo!"); }
+}
 
-    function salvarRascunho() {
-        rascunhoAtivo = {
-            id: Date.now(),
-            nome: document.getElementById('psNome').value,
-            local: document.getElementById('psLocal').value,
-            dataRel: document.getElementById('psDataRel').value,
-            inicio: document.getElementById('dataInicio').value,
-            fim: document.getElementById('dataFim').value,
-            checkR: document.getElementById('checkReal').value,
-            checkP: document.getElementById('checkPend').value,
-            checkD: document.getElementById('checkNomesPend').value,
-            acompT: document.getElementById('totalAcomp').value,
-            novasT: document.getElementById('totalNovas').value,
-            falhasD: document.getElementById('falhasDesc').value,
-            nomT: document.getElementById('nomTotal').value,
-            nomD: document.getElementById('nomDesc').value,
-            ptT: document.getElementById('ptTotal').value,
-            ptD: document.getElementById('ptDesc').value,
-            outros: document.getElementById('infoOutros').value
-        };
-        abrirLeitura(rascunhoAtivo, true);
-    }
+function salvarRascunho() {
+    rascunhoAtivo = {
+        id: Date.now().toString(),
+        nome: document.getElementById('psNome').value,
+        local: document.getElementById('psLocal').value,
+        dataRel: document.getElementById('psDataRel').value,
+        inicio: document.getElementById('dataInicio').value,
+        fim: document.getElementById('dataFim').value,
+        checkR: document.getElementById('checkReal').value,
+        checkP: document.getElementById('checkPend').value,
+        checkD: document.getElementById('checkNomesPend').value,
+        acompT: document.getElementById('totalAcomp').value,
+        novasT: document.getElementById('totalNovas').value,
+        falhasD: document.getElementById('falhasDesc').value,
+        nomT: document.getElementById('nomTotal').value,
+        nomD: document.getElementById('nomDesc').value,
+        ptT: document.getElementById('ptTotal').value,
+        ptD: document.getElementById('ptDesc').value,
+        outros: document.getElementById('infoOutros').value
+    };
+    abrirLeitura(rascunhoAtivo, true);
+}
 
-    function abrirLeitura(dados, modoEnvio) {
-        rascunhoAtivo = dados;
-        const cont = document.getElementById('conteudoLeitura');
-        cont.innerHTML = `
-            <div class="view-item"><b>Colaborador</b>${dados.nome}</div>
-            <div class="view-item"><b>Local</b>${dados.local}</div>
-            <div class="view-item"><b>Data Relatório</b>${formatarDataBR(dados.dataRel)}</div>
-            <div class="view-item"><b>Período</b>${formatarDataBR(dados.inicio)} a ${formatarDataBR(dados.fim)}</div>
-            <div class="section-title">Checklists</div>
-            <div class="view-item"><b>OK / Pendentes</b>${dados.checkR} / ${dados.checkP}</div>
-            <div class="view-item"><b>Pendências</b>${dados.checkD || 'Nenhuma'}</div>
-            <div class="section-title">Falhas</div>
-            <div class="view-item"><b>Acomp. / Novas</b>${dados.acompT} / ${dados.novasT}</div>
-            <div class="view-item"><b>Relato</b>${dados.falhasD || '-'}</div>
-            <div class="section-title">Recursos</div>
-            <div class="view-item"><b>Nomenclaturas (${dados.nomT})</b>${dados.nomD || '-'}</div>
-            <div class="view-item"><b>PT's (${dados.ptT})</b>${dados.ptD || '-'}</div>
-            <div class="section-title">Observações</div>
-            <div class="view-item"><b>Outros</b>${dados.outros || '-'}</div>
-        `;
-        document.getElementById('areaBotoesLeitura').style.display = modoEnvio ? 'block' : 'none';
-        document.getElementById('btnVoltarMenu').style.display = modoEnvio ? 'none' : 'block';
-        changeScreen('screenLeitura', modoEnvio ? 'REVISAR' : 'DETALHES');
-    }
+function abrirLeitura(dados, modoEnvio) {
+    rascunhoAtivo = dados;
+    const cont = document.getElementById('conteudoLeitura');
+    cont.innerHTML = `
+        <div class="view-item"><b>Colaborador</b>${dados.nome || '-'}</div>
+        <div class="view-item"><b>Local</b>${dados.local || '-'}</div>
+        <div class="view-item"><b>Data Relatório</b>${formatarDataBR(dados.dataRel)}</div>
+        <div class="view-item"><b>Período</b>${formatarDataBR(dados.inicio)} a ${formatarDataBR(dados.fim)}</div>
+        <div class="section-title">Checklists</div>
+        <div class="view-item"><b>OK / Pendentes</b>${dados.checkR} / ${dados.checkP}</div>
+        <div class="view-item"><b>Pendências</b>${dados.checkD || 'Nenhuma'}</div>
+        <div class="section-title">Falhas</div>
+        <div class="view-item"><b>Acomp. / Novas</b>${dados.acompT} / ${dados.novasT}</div>
+        <div class="view-item"><b>Relato</b>${dados.falhasD || '-'}</div>
+        <div class="section-title">Recursos</div>
+        <div class="view-item"><b>Nomenclaturas (${dados.nomT})</b>${dados.nomD || '-'}</div>
+        <div class="view-item"><b>PT's (${dados.ptT})</b>${dados.ptD || '-'}</div>
+        <div class="section-title">Observações</div>
+        <div class="view-item"><b>Outros</b>${dados.outros || '-'}</div>
+    `;
+    document.getElementById('areaBotoesLeitura').style.display = modoEnvio ? 'block' : 'none';
+    document.getElementById('btnVoltarMenu').style.display = modoEnvio ? 'none' : 'block';
+    changeScreen('screenLeitura', modoEnvio ? 'REVISAR' : 'DETALHES');
+}
 
-    function copiarParaWhatsapp() {
-        const d = rascunhoAtivo;
-        const texto = `*PASSAGEM DE SERVIÇO - PS DIGITAL*\n\n` +
-            `👤 *Colaborador:* ${d.nome}\n` +
-            `📍 *Local:* ${d.local}\n` +
-            `📅 *Data:* ${formatarDataBR(d.dataRel)}\n` +
-            `🗓️ *Período:* ${formatarDataBR(d.inicio)} a ${formatarDataBR(d.fim)}\n\n` +
-            `*CHECKLISTS*\n✅ Realizados: ${d.checkR}\n⚠️ Pendentes: ${d.checkP}\n📝 Obs: ${d.checkD || 'Nenhum'}\n\n` +
-            `*FALHAS*\n🔧 Acomp: ${d.acompT} | 🚨 Novas: ${d.novasT}\n💬 Relato: ${d.falhasD || '-'}\n\n` +
-            `*RECURSOS*\n📐 Nomenclaturas (${d.nomT}): ${d.nomD || '-'}\n📄 PTs (${d.ptT}): ${d.ptD || '-'}\n\n` +
-            `*OBSERVAÇÕES*\nℹ️ ${d.outros || '-'}`;
-        navigator.clipboard.writeText(texto).then(() => alert("Copiado!"));
-    }
+function copiarParaWhatsapp() {
+    const d = rascunhoAtivo;
+    const texto = `*PASSAGEM DE SERVIÇO - PS DIGITAL*\n\n` +
+        `👤 *Colaborador:* ${d.nome}\n` +
+        `📍 *Local:* ${d.local}\n` +
+        `📅 *Data:* ${formatarDataBR(d.dataRel)}\n` +
+        `🗓️ *Período:* ${formatarDataBR(d.inicio)} a ${formatarDataBR(d.fim)}\n\n` +
+        `*CHECKLISTS*\n✅ Realizados: ${d.checkR}\n⚠️ Pendentes: ${d.checkP}\n📝 Obs: ${d.checkD || 'Nenhum'}\n\n` +
+        `*FALHAS*\n🔧 Acomp: ${d.acompT} | 🚨 Novas: ${d.novasT}\n💬 Relato: ${d.falhasD || '-'}\n\n` +
+        `*RECURSOS*\n📐 Nomenclaturas (${d.nomT}): ${d.nomD || '-'}\n📄 PTs (${d.ptT}): ${d.ptD || '-'}\n\n` +
+        `*OBSERVAÇÕES*\nℹ️ ${d.outros || '-'}`;
+    navigator.clipboard.writeText(texto).then(() => alert("Copiado!"));
+}
 
-    function confirmarEnvio() {
-        let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-        db.unshift(rascunhoAtivo);
-        localStorage.setItem('psEnviadas', JSON.stringify(db));
-        fetch(URL_API, { method: 'POST', mode: 'no-cors', body: JSON.stringify(rascunhoAtivo) })
-        .then(() => { alert("Enviado com sucesso!"); changeScreen('screenMenu', 'PS DIGITAL'); })
-        .catch(err => { alert("Salvo offline."); changeScreen('screenMenu', 'PS DIGITAL'); });
-    }
+function confirmarEnvio() {
+    fetch(URL_API, { method: 'POST', mode: 'no-cors', body: JSON.stringify(rascunhoAtivo) })
+    .then(() => { 
+        alert("Enviado com sucesso!"); 
+        changeScreen('screenMenu', 'PS DIGITAL'); 
+    })
+    .catch(() => alert("Erro ao conectar com a planilha."));
+}
 
-    function carregarHistoricoGlobal() {
-        const lista = document.getElementById('listaHistorico');
-        lista.innerHTML = "Buscando dados na nuvem...";
-        fetch(URL_API)
+function carregarHistoricoGlobal() {
+    const lista = document.getElementById('listaHistorico');
+    lista.innerHTML = "Buscando dados na nuvem...";
+    
+    fetch(URL_API)
         .then(res => res.json())
         .then(dados => {
+            window.dbNuvem = dados; // Salva os dados para o clique funcionar
             lista.innerHTML = "";
+            if (!dados || dados.length === 0) {
+                lista.innerHTML = "Nenhum registro encontrado.";
+                return;
+            }
             dados.reverse().forEach((ps, index) => {
+                if(!ps.nome && !ps.id) return;
                 const item = document.createElement('div');
                 item.className = 'card';
-                let dLimpa = (ps.dataRel || "").split('T')[0];
-                let dStr = JSON.stringify(ps).replace(/'/g, "\\'");
                 
-                // CORREÇÃO: Uso de crases (`) e remoção de caracteres invisíveis
+                // Usamos o ID da planilha ou a posição da linha
+                let idItem = ps.id || index;
+
                 item.innerHTML = `
-                    <div onclick="abrirLeituraPorObjeto('${dStr}')" style="cursor:pointer"> 
-                        <small>${formatarDataBR(dLimpa)}</small> 
-                        <div style="font-weight:bold;color:#004d26">${ps.nome || 'Sem Nome'}</div> 
-                        <div>${ps.local || ''}</div> 
-                    </div> 
-                    <button class="btn-delete-small" onclick="excluirPS(${ps.id || index})">🗑️</button>`;
+                    <div onclick="abrirPeloId('${idItem}')" style="cursor:pointer">
+                        <small>${formatarDataBR(ps.dataRel)}</small>
+                        <div style="font-weight:bold; color:var(--primary)">${ps.nome || 'Sem Nome'}</div>
+                        <div style="font-size:0.8em; color:#666">${ps.local || ''}</div>
+                    </div>
+                    <button class="btn-delete-small" onclick="excluirPS('${idItem}')">🗑️</button>`;
                 lista.appendChild(item);
             });
         })
-        .catch(err => { lista.innerHTML = "Modo Offline ou Erro ao Carregar"; });
-    }
+        .catch(() => { lista.innerHTML = "Erro ao carregar histórico."; });
+}
 
-    function abrirLeituraPorObjeto(objStr) {
-        const dados = JSON.parse(objStr);
-        abrirLeitura(dados, false);
+function abrirPeloId(id) {
+    const psEncontrada = window.dbNuvem.find(item => item.id == id);
+    if(psEncontrada) {
+        abrirLeitura(psEncontrada, false);
+    } else {
+        alert("Erro ao abrir os detalhes.");
     }
+}
 
-    function loadEnviadas() { changeScreen('screenHistorico', 'HISTÓRICO'); carregarHistoricoGlobal(); }
-    
-    function excluirPS(id) {
-        if(confirm("Deseja excluir localmente?")) {
-            let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            db = db.filter(i => i.id != id);
-            localStorage.setItem('psEnviadas', JSON.stringify(db));
-            loadEnviadas();
-        }
+function excluirPS(id) {
+    if (confirm("Deseja excluir este registro da planilha?")) {
+        fetch(URL_API, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: "delete", id: id })
+        }).then(() => {
+            alert("Solicitação de exclusão enviada!");
+            setTimeout(carregarHistoricoGlobal, 1000);
+        });
     }
+}
 
-    function resetAcesso() { localStorage.clear(); location.reload(); }
-    function logout() { location.reload(); }
-    function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }
+function loadEnviadas() { changeScreen('screenHistorico', 'HISTÓRICO'); carregarHistoricoGlobal(); }
+function resetAcesso() { localStorage.clear(); location.reload(); }
+function logout() { location.reload(); }
+function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho.");
+
+ }
 </script>
 </body>
 </html>
