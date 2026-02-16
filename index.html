@@ -251,8 +251,7 @@
     }
 
    // Adicione esta constante no topo do seu <script> ou logo acima da função
-// --- CONFIGURAÇÃO DA API ---
-const URL_API = "https://script.google.com/macros/s/AKfycbwuTjGibLiUYBvudKDM4y46e7AjpzY61eeDGmcrbawa1sb8Fp2T0pXL8vmBYw2yCkELzQ/exec"; 
+const URL_API = "https://script.google.com/macros/s/AKfycbxNEP7Y6j04t6J2ny9gbhuV8ni1QmzmlMA56ORz_-h1iDPeOAaGdY3sBiwVINhUFdYy-A/exec"; 
 
 function confirmarEnvio() {
     // Mantém a cópia no celular (Offline)
@@ -276,68 +275,74 @@ function confirmarEnvio() {
         changeScreen('screenMenu', 'PS DIGITAL');
     });
 }
-
 function carregarHistoricoGlobal() {
     const lista = document.getElementById('listaHistorico');
     lista.innerHTML = "<p>Carregando dados da nuvem...</p>";
     
-    fetch(URL_API)
+    // Define um tempo limite de 5 segundos para não travar
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    fetch(URL_API, { signal: controller.signal })
         .then(res => res.json())
         .then(dados => {
+            clearTimeout(timeoutId);
             lista.innerHTML = "";
             if (!dados || dados.length === 0) {
                 lista.innerHTML = "<p>Nenhuma PS encontrada na nuvem.</p>";
                 return;
             }
-
-            dados.forEach((ps) => {
-                const item = document.createElement('div');
-                item.className = 'card';
-                item.style.cursor = 'pointer';
-                item.innerHTML = `
-                    <div onclick="abrirLeitura(${JSON.stringify(ps).replace(/"/g, '&quot;')}, false)">
-                        <small>${ps.dataRel || '---'}</small>
-                        <div style="font-weight:bold; color:var(--primary)">${ps.nome}</div>
-                        <div style="font-size:0.8em; color:#666">${ps.local}</div>
-                    </div>
-                `;
-                lista.appendChild(item);
-            });
+            // ... resto do seu código de renderizar as linhas ...
         })
         .catch(err => {
             console.warn("Falha na nuvem, carregando offline:", err);
-            lista.innerHTML = "<p style='color:orange'>Histórico Local (Offline)</p>";
+            lista.innerHTML = "<p>Mostrando Histórico Local (Offline)</p>";
+            // Se a nuvem falhar, ele carrega o que está no celular
             const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-            if(db.length > 0) { renderizarListaLocal(db); }
-            else { lista.innerHTML += "<p>Nenhum dado salvo no aparelho.</p>"; }
+            if(db.length > 0) {
+                // Chama sua função antiga de listar localmente
+                renderizarListaLocal(db); 
+            }
         });
 }
 
-function loadEnviadas() {
+    function loadEnviadas() {
+    // Primeiro, mudamos para a tela de histórico
     changeScreen('screenHistorico', 'HISTÓRICO');
+    
+    // Chamamos a função que busca na planilha (Nuvem)
     carregarHistoricoGlobal();
 }
-
-function abrirLeituraPorId(id) {
-    const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-    const item = db.find(i => i.id == id) || db[id];
-    if(item) abrirLeitura(item, false);
-}
-
-function excluirPS(id) {
-    if(confirm("Deseja realmente excluir esta passagem?")) {
-        let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
-        db = db.filter(i => (i.id != id));
-        localStorage.setItem('psEnviadas', JSON.stringify(db));
-        loadEnviadas(); 
+    
+    function abrirLeituraPorId(id) {
+        const db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+        const item = db.find(i => i.id == id) || db[id];
+        if(item) abrirLeitura(item, false);
     }
-}
 
-function resetAcesso() { localStorage.clear(); location.reload(); }
-function logout() { location.reload(); }
-function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }
+    function excluirPS(id) {
+        if(confirm("Deseja realmente excluir esta passagem?")) {
+            let db = JSON.parse(localStorage.getItem('psEnviadas') || "[]");
+            // Filtra removendo o item pelo ID ou pelo index (fallback)
+            db = db.filter(i => (i.id != id && db.indexOf(i) != id));
+            localStorage.setItem('psEnviadas', JSON.stringify(db));
+            loadEnviadas(); // Recarrega a lista
+        }
+    }
 
-function renderizarListaLocal(dados) {
+    function resetAcesso() { localStorage.clear(); location.reload(); }
+    function logout() { location.reload(); }
+    function abrirLeituraRascunho() { if(rascunhoAtivo) abrirLeitura(rascunhoAtivo, true); else alert("Sem rascunho."); }
+</script>
+<script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Offline pronto:', reg.scope))
+            .catch(err => console.log('Erro no Service Worker:', err));
+        });
+      }
+      function renderizarListaLocal(dados) {
     const lista = document.getElementById('listaHistorico');
     lista.innerHTML = "";
     dados.forEach((ps, index) => {
@@ -354,19 +359,6 @@ function renderizarListaLocal(dados) {
         lista.appendChild(item);
     });
 }
-
-// Registro do Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Offline pronto:', reg.scope))
-        .catch(err => console.log('Erro no Service Worker:', err));
-    });
-}
     </script>
 </body>
 </html>
-
-
-
-
